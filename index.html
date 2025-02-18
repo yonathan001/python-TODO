@@ -3,49 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>To-Do App by-yonathan</title>
+    <title>Todo App</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 50px; text-align: center; }
-        form { margin-bottom: 20px; }
-        table { width: 50%; margin: auto; border-collapse: collapse; }
-        th, td { padding: 10px; border: 1px solid #ddd; text-align: center; }
-        th { background-color: #4CAF50; color: white; }
-        .completed { text-decoration: line-through; color: gray; }
-        button { cursor: pointer; padding: 5px 10px; border: none; background-color: #f44336; color: white; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #task-list {
+            margin-top: 20px;
+        }
+        .task {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border: 1px solid #ccc;
+            margin-bottom: 5px;
+        }
+        .completed {
+            text-decoration: line-through;
+            color: gray;
+        }
     </style>
 </head>
 <body>
-    <h1>To-Do List</h1>
-    <form action="/add" method="POST">
-        <input type="text" name="task" required>
+    <h1>Todo App</h1>
+    <form id="add-task-form">
+        <input type="text" id="task-input" placeholder="Enter a new task" required>
         <button type="submit">Add Task</button>
     </form>
-    
-    <table>
-        <tr>
-            <th>Task</th>
-            <th>Action</th>
-        </tr>
-        <tbody id="task-list"></tbody>
-    </table>
+
+    <div id="task-list"></div>
 
     <script>
-        async function fetchTasks() {
-            const response = await fetch("/tasks");
-            const tasks = await response.json();
-            let html = "";
-            tasks.forEach(task => {
-                html += `<tr>
-                    <td class="${task.status ? 'completed' : ''}">${task.task}</td>
-                    <td>
-                        ${task.status ? "" : `<a href="/complete/${task.id}">✔️ Complete</a>`}
-                        <a href="/delete/${task.id}">❌ Delete</a>
-                    </td>
-                </tr>`;
-            });
-            document.getElementById("task-list").innerHTML = html;
+        // Fetch and display tasks
+        function fetchTasks() {
+            fetch("/tasks")
+                .then(response => response.json())
+                .then(tasks => {
+                    const taskList = document.getElementById("task-list");
+                    taskList.innerHTML = "";
+                    tasks.forEach(task => {
+                        const taskDiv = document.createElement("div");
+                        taskDiv.className = `task ${task.status ? "completed" : ""}`;
+                        taskDiv.innerHTML = `
+                            <span>${task.task}</span>
+                            <div>
+                                <button onclick="completeTask(${task.id})">Complete</button>
+                                <button onclick="deleteTask(${task.id})">Delete</button>
+                            </div>
+                        `;
+                        taskList.appendChild(taskDiv);
+                    });
+                });
         }
 
+        // Add a new task
+        document.getElementById("add-task-form").addEventListener("submit", function (e) {
+            e.preventDefault();
+            const taskInput = document.getElementById("task-input");
+            const taskText = taskInput.value.trim();
+            if (taskText) {
+                fetch("/add", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                    body: `task=${encodeURIComponent(taskText)}`,
+                }).then(() => {
+                    taskInput.value = "";
+                    fetchTasks();
+                });
+            }
+        });
+
+        // Complete a task
+        function completeTask(taskId) {
+            fetch(`/complete/${taskId}`, { method: "POST" })
+                .then(() => fetchTasks());
+        }
+
+        // Delete a task
+        function deleteTask(taskId) {
+            fetch(`/delete/${taskId}`, { method: "POST" })
+                .then(() => fetchTasks());
+        }
+
+        // Initial fetch of tasks
         fetchTasks();
     </script>
 </body>
