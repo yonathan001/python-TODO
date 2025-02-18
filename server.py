@@ -71,13 +71,13 @@ class TodoHandler(BaseHTTPRequestHandler):
         # Handle completing a task
         elif self.path.startswith("/complete/"):
             try:
-                task_id = int(self.path.split("/")[-1])  # Extract ID from URL
+                task_id = int(self.path.split("/")[2])  # Extract ID from URL
                 db = get_db_connection()
                 cursor = db.cursor()
                 cursor.execute("UPDATE tasks SET status = TRUE WHERE id = %s", (task_id,))
                 db.commit()
                 db.close()
-            except ValueError:
+            except (ValueError, IndexError):
                 self.send_response(400)
                 self.end_headers()
                 return
@@ -85,13 +85,13 @@ class TodoHandler(BaseHTTPRequestHandler):
         # Handle deleting a task
         elif self.path.startswith("/delete/"):
             try:
-                task_id = int(self.path.split("/")[-1])  # Extract ID from URL
+                task_id = int(self.path.split("/")[2])  # Extract ID from URL
                 db = get_db_connection()
                 cursor = db.cursor()
                 cursor.execute("DELETE FROM tasks WHERE id = %s", (task_id,))
                 db.commit()
                 db.close()
-            except ValueError:
+            except (ValueError, IndexError):
                 self.send_response(400)
                 self.end_headers()
                 return
@@ -100,6 +100,7 @@ class TodoHandler(BaseHTTPRequestHandler):
         self.send_response(303)
         self.send_header("Location", "/")
         self.end_headers()
+
 # Run the server
 create_tasks_table()
 server_address = ("", 8000)
