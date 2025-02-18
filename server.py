@@ -58,6 +58,7 @@ class TodoHandler(BaseHTTPRequestHandler):
         post_data = self.rfile.read(content_length).decode("utf-8")
         data = parse_qs(post_data)
 
+        # Handle adding a task
         if self.path == "/add":
             task_text = data.get("task", [""])[0]
             if task_text.strip():
@@ -67,26 +68,38 @@ class TodoHandler(BaseHTTPRequestHandler):
                 db.commit()
                 db.close()
 
+        # Handle completing a task
         elif self.path.startswith("/complete/"):
-            task_id = int(self.path.split("/")[-1])
-            db = get_db_connection()
-            cursor = db.cursor()
-            cursor.execute("UPDATE tasks SET status = TRUE WHERE id = %s", (task_id,))
-            db.commit()
-            db.close()
+            try:
+                task_id = int(self.path.split("/")[-1])  # Extract ID from URL
+                db = get_db_connection()
+                cursor = db.cursor()
+                cursor.execute("UPDATE tasks SET status = TRUE WHERE id = %s", (task_id,))
+                db.commit()
+                db.close()
+            except ValueError:
+                self.send_response(400)
+                self.end_headers()
+                return
 
+        # Handle deleting a task
         elif self.path.startswith("/delete/"):
-            task_id = int(self.path.split("/")[-1])
-            db = get_db_connection()
-            cursor = db.cursor()
-            cursor.execute("DELETE FROM tasks WHERE id = %s", (task_id,))
-            db.commit()
-            db.close()
+            try:
+                task_id = int(self.path.split("/")[-1])  # Extract ID from URL
+                db = get_db_connection()
+                cursor = db.cursor()
+                cursor.execute("DELETE FROM tasks WHERE id = %s", (task_id,))
+                db.commit()
+                db.close()
+            except ValueError:
+                self.send_response(400)
+                self.end_headers()
+                return
 
+        # Redirect back to main page after action
         self.send_response(303)
         self.send_header("Location", "/")
         self.end_headers()
-
 # Run the server
 create_tasks_table()
 server_address = ("", 8000)
